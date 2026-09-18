@@ -199,13 +199,17 @@
 
   <script>
 
-    /*
-      INVITADOS DE PRUEBA
+    /* =========================================
+       CONEXIÓN CON GOOGLE SHEETS
+       ========================================= */
 
-      Aquí tenemos nuestros 5 invitados.
-      Más adelante esta información vendrá
-      automáticamente desde nuestra base de datos.
-    */
+    const URL_GOOGLE_SHEETS =
+      "https://script.google.com/macros/s/AKfycbyVB6NuQHL_U7DK_SHDkFpNU6Y0s9gguGsJhvwoHaDc5lc6W5Z5FVYCLkf-86XgRvSVYg/exec";
+
+
+    /* =========================================
+       INVITADOS DE PRUEBA
+       ========================================= */
 
     const invitados = [
       {
@@ -230,6 +234,7 @@
       }
     ];
 
+
     let invitadoActual = null;
     let cantidadSeleccionada = null;
 
@@ -247,9 +252,9 @@
 
     function buscarInvitado() {
 
-      const nombre = document
-        .getElementById("nombre")
-        .value;
+      const nombre =
+        document.getElementById("nombre").value;
+
 
       if (!nombre.trim()) {
 
@@ -262,18 +267,22 @@
       }
 
 
-      const buscado = normalizarNombre(nombre);
+      const buscado =
+        normalizarNombre(nombre);
 
-      const resultado = invitados.find(function(invitado) {
 
-        return normalizarNombre(invitado.nombre) === buscado;
+      const resultado =
+        invitados.find(function(invitado) {
 
-      });
+          return normalizarNombre(invitado.nombre) === buscado;
+
+        });
 
 
       if (!resultado) {
 
-        document.getElementById("invitado").style.display = "none";
+        document.getElementById("invitado")
+          .style.display = "none";
 
         mostrarMensaje(
           "No encontramos una invitación con ese nombre.",
@@ -286,23 +295,34 @@
 
       invitadoActual = resultado;
 
-      document.getElementById("nombreMostrado").textContent =
+
+      document.getElementById("nombreMostrado")
+        .textContent =
         "¡Hola, " + resultado.nombre + "!";
 
 
-      document.getElementById("lugaresMostrados").textContent =
+      document.getElementById("lugaresMostrados")
+        .textContent =
         "Tienes " +
         resultado.lugares +
         " " +
-        (resultado.lugares === 1 ? "lugar" : "lugares") +
+        (resultado.lugares === 1
+          ? "lugar"
+          : "lugares") +
         " asignado" +
-        (resultado.lugares === 1 ? "" : "s") +
+        (resultado.lugares === 1
+          ? ""
+          : "s") +
         ".";
 
 
-      document.getElementById("invitado").style.display = "block";
+      document.getElementById("invitado")
+        .style.display = "block";
 
-      document.getElementById("mensaje").textContent = "";
+
+      document.getElementById("mensaje")
+        .textContent = "";
+
 
       crearOpciones(resultado.lugares);
 
@@ -314,9 +334,12 @@
       const contenedor =
         document.getElementById("opciones");
 
+
       contenedor.innerHTML = "";
 
+
       cantidadSeleccionada = null;
+
 
       document.getElementById("botonConfirmar")
         .style.display = "none";
@@ -324,7 +347,9 @@
 
       for (let i = 1; i <= maximo; i++) {
 
-        const boton = document.createElement("button");
+        const boton =
+          document.createElement("button");
+
 
         boton.textContent = i;
 
@@ -337,18 +362,24 @@
             .querySelectorAll(".opcion")
             .forEach(function(elemento) {
 
-              elemento.classList.remove("seleccionada");
+              elemento.classList.remove(
+                "seleccionada"
+              );
 
             });
 
 
-          boton.classList.add("seleccionada");
+          boton.classList.add(
+            "seleccionada"
+          );
+
 
           cantidadSeleccionada = i;
 
 
-          document.getElementById("botonConfirmar")
-            .style.display = "block";
+          document.getElementById(
+            "botonConfirmar"
+          ).style.display = "block";
 
         };
 
@@ -359,6 +390,10 @@
 
     }
 
+
+    /* =========================================
+       CONFIRMAR Y ENVIAR A GOOGLE SHEETS
+       ========================================= */
 
     function confirmar() {
 
@@ -373,19 +408,84 @@
       }
 
 
+      if (!invitadoActual) {
+
+        mostrarMensaje(
+          "No encontramos tu invitación.",
+          true
+        );
+
+        return;
+      }
+
+
+      const datos = {
+
+        nombre: invitadoActual.nombre,
+
+        confirmados: cantidadSeleccionada
+
+      };
+
+
       mostrarMensaje(
-        "¡Gracias! Tu asistencia ha sido confirmada para " +
-        cantidadSeleccionada +
-        " " +
-        (cantidadSeleccionada === 1
-          ? "persona."
-          : "personas."),
+        "Guardando tu confirmación...",
         false
       );
 
 
-      document.getElementById("botonConfirmar")
-        .style.display = "none";
+      document.getElementById(
+        "botonConfirmar"
+      ).disabled = true;
+
+
+      fetch(URL_GOOGLE_SHEETS, {
+
+        method: "POST",
+
+        mode: "no-cors",
+
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+
+        body: JSON.stringify(datos)
+
+      })
+      .then(function() {
+
+        mostrarMensaje(
+
+          "¡Gracias! Tu asistencia ha sido confirmada para " +
+          cantidadSeleccionada +
+          " " +
+          (cantidadSeleccionada === 1
+            ? "persona."
+            : "personas."),
+
+          false
+
+        );
+
+
+        document.getElementById(
+          "botonConfirmar"
+        ).style.display = "none";
+
+      })
+      .catch(function() {
+
+        mostrarMensaje(
+          "No pudimos guardar la confirmación. Intenta nuevamente.",
+          true
+        );
+
+
+        document.getElementById(
+          "botonConfirmar"
+        ).disabled = false;
+
+      });
 
     }
 
@@ -395,10 +495,14 @@
       const mensaje =
         document.getElementById("mensaje");
 
+
       mensaje.textContent = texto;
 
+
       mensaje.className =
-        error ? "error" : "exito";
+        error
+          ? "error"
+          : "exito";
 
     }
 
