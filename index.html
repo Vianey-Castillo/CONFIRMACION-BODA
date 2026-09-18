@@ -87,6 +87,11 @@
       opacity: 0.9;
     }
 
+    .boton:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     #invitado {
       display: none;
       margin-top: 30px;
@@ -158,7 +163,9 @@
       Escribe tu nombre para comenzar.
     </p>
 
-    <label for="nombre">Nombre completo</label>
+    <label for="nombre">
+      Nombre completo
+    </label>
 
     <input
       type="text"
@@ -166,21 +173,34 @@
       placeholder="Ej. Ana García"
     >
 
-    <button class="boton" onclick="buscarInvitado()">
+    <button
+      class="boton"
+      id="botonBuscar"
+      onclick="buscarInvitado()"
+    >
       Buscar invitación
     </button>
 
     <div id="invitado">
 
-      <div class="nombre" id="nombreMostrado"></div>
+      <div
+        class="nombre"
+        id="nombreMostrado"
+      ></div>
 
-      <div class="lugares" id="lugaresMostrados"></div>
+      <div
+        class="lugares"
+        id="lugaresMostrados"
+      ></div>
 
       <p>
         ¿Cuántas personas asistirán?
       </p>
 
-      <div class="opciones" id="opciones"></div>
+      <div
+        class="opciones"
+        id="opciones"
+      ></div>
 
       <button
         class="boton"
@@ -199,64 +219,32 @@
 
   <script>
 
-    /* =========================================
-       CONEXIÓN CON GOOGLE SHEETS
-       ========================================= */
+    /* =====================================
+       GOOGLE SHEETS
+       ===================================== */
 
     const URL_GOOGLE_SHEETS =
-      "https://script.google.com/macros/s/AKfycbyVB6NuQHL_U7DK_SHDkFpNU6Y0s9gguGsJhvwoHaDc5lc6W5Z5FVYCLkf-86XgRvSVYg/exec";
-
-
-    /* =========================================
-       INVITADOS DE PRUEBA
-       ========================================= */
-
-    const invitados = [
-      {
-        nombre: "Ana García",
-        lugares: 4
-      },
-      {
-        nombre: "Luis Martínez",
-        lugares: 2
-      },
-      {
-        nombre: "Sofía Hernández",
-        lugares: 5
-      },
-      {
-        nombre: "Carlos Ramírez",
-        lugares: 3
-      },
-      {
-        nombre: "Mariana Torres",
-        lugares: 1
-      }
-    ];
+      "https://script.google.com/macros/s/AKfycbwkDlsj7mxeMwTr5LHBMp4YugtgFZeZJcZC2yXASmINfJW8y-YYyPJ-2RlOiUbmp_8gOw/exec";
 
 
     let invitadoActual = null;
     let cantidadSeleccionada = null;
 
 
-    function normalizarNombre(nombre) {
-
-      return nombre
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-    }
-
+    /* =====================================
+       BUSCAR INVITADO
+       ===================================== */
 
     function buscarInvitado() {
 
       const nombre =
-        document.getElementById("nombre").value;
+        document
+          .getElementById("nombre")
+          .value
+          .trim();
 
 
-      if (!nombre.trim()) {
+      if (!nombre) {
 
         mostrarMensaje(
           "Por favor escribe tu nombre.",
@@ -267,88 +255,152 @@
       }
 
 
-      const buscado =
-        normalizarNombre(nombre);
-
-
-      const resultado =
-        invitados.find(function(invitado) {
-
-          return normalizarNombre(invitado.nombre) === buscado;
-
-        });
-
-
-      if (!resultado) {
-
-        document.getElementById("invitado")
-          .style.display = "none";
-
-        mostrarMensaje(
-          "No encontramos una invitación con ese nombre.",
-          true
+      const botonBuscar =
+        document.getElementById(
+          "botonBuscar"
         );
 
-        return;
-      }
+
+      botonBuscar.disabled = true;
+
+      botonBuscar.textContent =
+        "Buscando...";
 
 
-      invitadoActual = resultado;
+      document
+        .getElementById("invitado")
+        .style.display = "none";
 
 
-      document.getElementById("nombreMostrado")
-        .textContent =
-        "¡Hola, " + resultado.nombre + "!";
+      const url =
+        URL_GOOGLE_SHEETS +
+        "?nombre=" +
+        encodeURIComponent(nombre);
 
 
-      document.getElementById("lugaresMostrados")
-        .textContent =
-        "Tienes " +
-        resultado.lugares +
-        " " +
-        (resultado.lugares === 1
-          ? "lugar"
-          : "lugares") +
-        " asignado" +
-        (resultado.lugares === 1
-          ? ""
-          : "s") +
-        ".";
+      fetch(url)
+
+        .then(function(respuesta) {
+          return respuesta.json();
+        })
+
+        .then(function(datos) {
+
+          botonBuscar.disabled = false;
+
+          botonBuscar.textContent =
+            "Buscar invitación";
 
 
-      document.getElementById("invitado")
-        .style.display = "block";
+          if (!datos.ok) {
+
+            mostrarMensaje(
+              "No encontramos una invitación con ese nombre.",
+              true
+            );
+
+            return;
+          }
 
 
-      document.getElementById("mensaje")
-        .textContent = "";
+          invitadoActual =
+            datos.invitado;
 
 
-      crearOpciones(resultado.lugares);
+          document
+            .getElementById("nombreMostrado")
+            .textContent =
+            "¡Hola, " +
+            invitadoActual.nombre +
+            "!";
+
+
+          document
+            .getElementById("lugaresMostrados")
+            .textContent =
+            "Tienes " +
+            invitadoActual.lugares +
+            " " +
+            (
+              invitadoActual.lugares === 1
+                ? "lugar"
+                : "lugares"
+            ) +
+            " asignado" +
+            (
+              invitadoActual.lugares === 1
+                ? ""
+                : "s"
+            ) +
+            ".";
+
+
+          document
+            .getElementById("invitado")
+            .style.display = "block";
+
+
+          document
+            .getElementById("mensaje")
+            .textContent = "";
+
+
+          crearOpciones(
+            invitadoActual.lugares
+          );
+
+        })
+
+        .catch(function() {
+
+          botonBuscar.disabled = false;
+
+          botonBuscar.textContent =
+            "Buscar invitación";
+
+
+          mostrarMensaje(
+            "No pudimos consultar la invitación. Intenta nuevamente.",
+            true
+          );
+
+        });
 
     }
 
 
+    /* =====================================
+       OPCIONES DE PERSONAS
+       ===================================== */
+
     function crearOpciones(maximo) {
 
       const contenedor =
-        document.getElementById("opciones");
+        document.getElementById(
+          "opciones"
+        );
 
 
       contenedor.innerHTML = "";
 
-
       cantidadSeleccionada = null;
 
 
-      document.getElementById("botonConfirmar")
+      document
+        .getElementById("botonConfirmar")
         .style.display = "none";
 
 
-      for (let i = 1; i <= maximo; i++) {
+      for (
+        let i = 1;
+        i <= maximo;
+        i++
+      ) {
 
         const boton =
-          document.createElement("button");
+          document.createElement(
+            "button"
+          );
 
 
         boton.textContent = i;
@@ -356,44 +408,54 @@
         boton.className = "opcion";
 
 
-        boton.onclick = function() {
+        boton.onclick =
+          function() {
 
-          document
-            .querySelectorAll(".opcion")
-            .forEach(function(elemento) {
+            document
+              .querySelectorAll(
+                ".opcion"
+              )
+              .forEach(
+                function(elemento) {
 
-              elemento.classList.remove(
-                "seleccionada"
+                  elemento.classList
+                    .remove(
+                      "seleccionada"
+                    );
+
+                }
               );
 
-            });
+
+            boton.classList.add(
+              "seleccionada"
+            );
 
 
-          boton.classList.add(
-            "seleccionada"
-          );
+            cantidadSeleccionada = i;
 
 
-          cantidadSeleccionada = i;
+            document
+              .getElementById(
+                "botonConfirmar"
+              )
+              .style.display = "block";
+
+          };
 
 
-          document.getElementById(
-            "botonConfirmar"
-          ).style.display = "block";
-
-        };
-
-
-        contenedor.appendChild(boton);
+        contenedor.appendChild(
+          boton
+        );
 
       }
 
     }
 
 
-    /* =========================================
-       CONFIRMAR Y ENVIAR A GOOGLE SHEETS
-       ========================================= */
+    /* =====================================
+       CONFIRMAR
+       ===================================== */
 
     function confirmar() {
 
@@ -419,13 +481,16 @@
       }
 
 
-      const datos = {
+      const boton =
+        document.getElementById(
+          "botonConfirmar"
+        );
 
-        nombre: invitadoActual.nombre,
 
-        confirmados: cantidadSeleccionada
+      boton.disabled = true;
 
-      };
+      boton.textContent =
+        "Guardando...";
 
 
       mostrarMensaje(
@@ -434,24 +499,34 @@
       );
 
 
-      document.getElementById(
-        "botonConfirmar"
-      ).disabled = true;
+      const datos = {
+
+        nombre:
+          invitadoActual.nombre,
+
+        confirmados:
+          cantidadSeleccionada
+
+      };
 
 
-      fetch(URL_GOOGLE_SHEETS, {
+      fetch(
+        URL_GOOGLE_SHEETS,
+        {
+          method: "POST",
 
-        method: "POST",
+          mode: "no-cors",
 
-        mode: "no-cors",
+          headers: {
+            "Content-Type":
+              "text/plain;charset=utf-8"
+          },
 
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
+          body:
+            JSON.stringify(datos)
+        }
+      )
 
-        body: JSON.stringify(datos)
-
-      })
       .then(function() {
 
         mostrarMensaje(
@@ -459,44 +534,57 @@
           "¡Gracias! Tu asistencia ha sido confirmada para " +
           cantidadSeleccionada +
           " " +
-          (cantidadSeleccionada === 1
-            ? "persona."
-            : "personas."),
+          (
+            cantidadSeleccionada === 1
+              ? "persona."
+              : "personas."
+          ),
 
           false
 
         );
 
 
-        document.getElementById(
-          "botonConfirmar"
-        ).style.display = "none";
+        boton.style.display =
+          "none";
 
       })
+
       .catch(function() {
+
+        boton.disabled = false;
+
+        boton.textContent =
+          "Confirmar asistencia";
+
 
         mostrarMensaje(
           "No pudimos guardar la confirmación. Intenta nuevamente.",
           true
         );
 
-
-        document.getElementById(
-          "botonConfirmar"
-        ).disabled = false;
-
       });
 
     }
 
 
-    function mostrarMensaje(texto, error) {
+    /* =====================================
+       MENSAJES
+       ===================================== */
+
+    function mostrarMensaje(
+      texto,
+      error
+    ) {
 
       const mensaje =
-        document.getElementById("mensaje");
+        document.getElementById(
+          "mensaje"
+        );
 
 
-      mensaje.textContent = texto;
+      mensaje.textContent =
+        texto;
 
 
       mensaje.className =
