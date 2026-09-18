@@ -7,35 +7,139 @@
   <title>Confirmación de asistencia</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       font-family: Georgia, serif;
       background: #f8f1f3;
       color: #4a3a3f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
 
     .tarjeta {
-      background: white;
-      width: 90%;
+      width: 100%;
       max-width: 500px;
-      padding: 45px 30px;
+      background: white;
+      padding: 40px 30px;
+      border-radius: 22px;
       text-align: center;
-      border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
 
+    .corazon {
+      font-size: 38px;
+      margin-bottom: 10px;
+    }
+
     h1 {
+      margin: 0;
+      font-size: 29px;
       font-weight: normal;
       color: #6b4d57;
     }
 
-    p {
+    .subtitulo {
       color: #806f76;
       line-height: 1.6;
+      margin: 15px 0 28px;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d8c7cd;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #9c7d88;
+    }
+
+    .boton {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 15px;
+      background: #8f6d79;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .boton:hover {
+      opacity: 0.9;
+    }
+
+    #invitado {
+      display: none;
+      margin-top: 30px;
+      border-top: 1px solid #eadfe3;
+      padding-top: 25px;
+    }
+
+    .nombre {
+      font-size: 23px;
+      color: #6b4d57;
+      margin-bottom: 8px;
+    }
+
+    .lugares {
+      color: #806f76;
+      margin-bottom: 20px;
+    }
+
+    .opciones {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .opcion {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1px solid #cdbac2;
+      background: white;
+      color: #8f6d79;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .opcion.seleccionada {
+      background: #8f6d79;
+      color: white;
+    }
+
+    #mensaje {
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    .error {
+      color: #a44f5b;
+    }
+
+    .exito {
+      color: #557a61;
     }
   </style>
 </head>
@@ -44,19 +148,261 @@
 
   <div class="tarjeta">
 
-    <div style="font-size: 40px;">🤍</div>
+    <div class="corazon">🤍</div>
 
     <h1>Confirmación de asistencia</h1>
 
-    <p>
+    <p class="subtitulo">
       Nos encantará compartir este día tan especial contigo.
+      <br>
+      Escribe tu nombre para comenzar.
     </p>
 
-    <p>
-      Nuestra página está funcionando ✨
-    </p>
+    <label for="nombre">Nombre completo</label>
+
+    <input
+      type="text"
+      id="nombre"
+      placeholder="Ej. Ana García"
+    >
+
+    <button class="boton" onclick="buscarInvitado()">
+      Buscar invitación
+    </button>
+
+    <div id="invitado">
+
+      <div class="nombre" id="nombreMostrado"></div>
+
+      <div class="lugares" id="lugaresMostrados"></div>
+
+      <p>
+        ¿Cuántas personas asistirán?
+      </p>
+
+      <div class="opciones" id="opciones"></div>
+
+      <button
+        class="boton"
+        id="botonConfirmar"
+        onclick="confirmar()"
+        style="display:none;"
+      >
+        Confirmar asistencia
+      </button>
+
+      <div id="mensaje"></div>
+
+    </div>
 
   </div>
+
+  <script>
+
+    /*
+      INVITADOS DE PRUEBA
+
+      Aquí tenemos nuestros 5 invitados.
+      Más adelante esta información vendrá
+      automáticamente desde nuestra base de datos.
+    */
+
+    const invitados = [
+      {
+        nombre: "Ana García",
+        lugares: 4
+      },
+      {
+        nombre: "Luis Martínez",
+        lugares: 2
+      },
+      {
+        nombre: "Sofía Hernández",
+        lugares: 5
+      },
+      {
+        nombre: "Carlos Ramírez",
+        lugares: 3
+      },
+      {
+        nombre: "Mariana Torres",
+        lugares: 1
+      }
+    ];
+
+    let invitadoActual = null;
+    let cantidadSeleccionada = null;
+
+
+    function normalizarNombre(nombre) {
+
+      return nombre
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    }
+
+
+    function buscarInvitado() {
+
+      const nombre = document
+        .getElementById("nombre")
+        .value;
+
+      if (!nombre.trim()) {
+
+        mostrarMensaje(
+          "Por favor escribe tu nombre.",
+          true
+        );
+
+        return;
+      }
+
+
+      const buscado = normalizarNombre(nombre);
+
+      const resultado = invitados.find(function(invitado) {
+
+        return normalizarNombre(invitado.nombre) === buscado;
+
+      });
+
+
+      if (!resultado) {
+
+        document.getElementById("invitado").style.display = "none";
+
+        mostrarMensaje(
+          "No encontramos una invitación con ese nombre.",
+          true
+        );
+
+        return;
+      }
+
+
+      invitadoActual = resultado;
+
+      document.getElementById("nombreMostrado").textContent =
+        "¡Hola, " + resultado.nombre + "!";
+
+
+      document.getElementById("lugaresMostrados").textContent =
+        "Tienes " +
+        resultado.lugares +
+        " " +
+        (resultado.lugares === 1 ? "lugar" : "lugares") +
+        " asignado" +
+        (resultado.lugares === 1 ? "" : "s") +
+        ".";
+
+
+      document.getElementById("invitado").style.display = "block";
+
+      document.getElementById("mensaje").textContent = "";
+
+      crearOpciones(resultado.lugares);
+
+    }
+
+
+    function crearOpciones(maximo) {
+
+      const contenedor =
+        document.getElementById("opciones");
+
+      contenedor.innerHTML = "";
+
+      cantidadSeleccionada = null;
+
+      document.getElementById("botonConfirmar")
+        .style.display = "none";
+
+
+      for (let i = 1; i <= maximo; i++) {
+
+        const boton = document.createElement("button");
+
+        boton.textContent = i;
+
+        boton.className = "opcion";
+
+
+        boton.onclick = function() {
+
+          document
+            .querySelectorAll(".opcion")
+            .forEach(function(elemento) {
+
+              elemento.classList.remove("seleccionada");
+
+            });
+
+
+          boton.classList.add("seleccionada");
+
+          cantidadSeleccionada = i;
+
+
+          document.getElementById("botonConfirmar")
+            .style.display = "block";
+
+        };
+
+
+        contenedor.appendChild(boton);
+
+      }
+
+    }
+
+
+    function confirmar() {
+
+      if (!cantidadSeleccionada) {
+
+        mostrarMensaje(
+          "Selecciona cuántas personas asistirán.",
+          true
+        );
+
+        return;
+      }
+
+
+      mostrarMensaje(
+        "¡Gracias! Tu asistencia ha sido confirmada para " +
+        cantidadSeleccionada +
+        " " +
+        (cantidadSeleccionada === 1
+          ? "persona."
+          : "personas."),
+        false
+      );
+
+
+      document.getElementById("botonConfirmar")
+        .style.display = "none";
+
+    }
+
+
+    function mostrarMensaje(texto, error) {
+
+      const mensaje =
+        document.getElementById("mensaje");
+
+      mensaje.textContent = texto;
+
+      mensaje.className =
+        error ? "error" : "exito";
+
+    }
+
+  </script>
 
 </body>
 </html>
